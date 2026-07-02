@@ -64,8 +64,8 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.snap
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.key
 
 data class Flashcard(
     var question: String, var answer: String
@@ -902,19 +902,20 @@ fun DeckScreen(
                             }
                         )
                     }) {
-                StudyFlashcard(
-                    currentCard = currentCard,
-                    currentCardIndex = currentCardIndex,
-                    totalCards = studyCards.size,
-                    isFlipped = showAnswer,
-                    onCardClick = {
-                        if (!isDragging && !isSliding) {
-                            showAnswer = !showAnswer
-                        }
-                    },
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
+                key(currentCardIndex) {
+                    StudyFlashcard(
+                        currentCard = currentCard,
+                        currentCardIndex = currentCardIndex,
+                        totalCards = studyCards.size,
+                        isFlipped = showAnswer,
+                        onCardClick = {
+                            if (!isDragging && !isSliding) {
+                                showAnswer = !showAnswer
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -964,13 +965,10 @@ fun StudyFlashcard(
 ) {
     val rotation by animateFloatAsState(
         targetValue = if (isFlipped) 180f else 0f,
-        animationSpec =
-            if (isFlipped)
-                tween(400)
-            else
-                snap(),
+        animationSpec = tween(durationMillis = 400),
         label = "CardFlip"
     )
+
     val density = LocalDensity.current
 
     val darkTheme = isSystemInDarkTheme()
