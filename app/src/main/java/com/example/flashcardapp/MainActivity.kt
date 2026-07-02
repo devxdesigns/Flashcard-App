@@ -64,6 +64,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.snap
 import androidx.compose.runtime.mutableIntStateOf
 
 data class Flashcard(
@@ -739,6 +740,12 @@ fun DeckScreen(
 
     suspend fun animateCardTransition(direction: Int) {
 
+        if ((direction == 1 && currentCardIndex >= studyCards.lastIndex) ||
+            (direction == -1 && currentCardIndex <= 0)
+        ) {
+            return
+        }
+
         isSliding = true
 
         val exitOffset = if (direction == 1) -screenWidthPx
@@ -892,7 +899,8 @@ fun DeckScreen(
                                     }
                                     isDragging = false
                                 }
-                            })
+                            }
+                        )
                     }) {
                 StudyFlashcard(
                     currentCard = currentCard,
@@ -956,10 +964,13 @@ fun StudyFlashcard(
 ) {
     val rotation by animateFloatAsState(
         targetValue = if (isFlipped) 180f else 0f,
-        animationSpec = tween(durationMillis = 400),
+        animationSpec =
+            if (isFlipped)
+                tween(400)
+            else
+                snap(),
         label = "CardFlip"
     )
-
     val density = LocalDensity.current
 
     val darkTheme = isSystemInDarkTheme()
