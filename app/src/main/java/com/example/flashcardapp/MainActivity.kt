@@ -48,39 +48,75 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MenuDefaults
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.runtime.mutableIntStateOf
 
 data class Flashcard(
-    var question: String,
-    var answer: String
+    var question: String, var answer: String
 )
 
 data class Deck(
-    var name: String,
-    val cards: MutableList<Flashcard>,
-    var isFavorite: Boolean = false
+    var name: String, val cards: MutableList<Flashcard>, var isFavorite: Boolean = false
 )
 
 val sampleDecks = mutableStateListOf(
 
     Deck(
-        name = "Biology",
-        cards = mutableListOf(
+        name = "Biology", cards = mutableListOf(
             Flashcard(
-                question = "Powerhouse of the cell?",
-                answer = "Mitochondria"
+                question = "Powerhouse of the cell?", answer = "Mitochondria"
             )
         )
     ),
 
     Deck(
-        name = "Korean",
-        cards = mutableListOf(
+        name = "Korean", cards = mutableListOf(
             Flashcard(
-                question = "안녕하세요 means?",
-                answer = "Hello"
+                question = "안녕하세요 means?", answer = "Hello"
+            ), Flashcard(
+                question = "안녕 means?", answer = "Hi"
+            ), Flashcard(
+                question = "하세요 means?", answer = "do it"
             )
         )
     )
+)
+
+val lightPastelColors = listOf(
+    Color(0xFFD6CCFF), // Lavender
+    Color(0xFFC8F7DC), // Mint
+    Color(0xFFFFD6C9), // Peach
+    Color(0xFFCDEBFF), // Sky
+    Color(0xFFFFF1B8), // Butter
+    Color(0xFFFFD6E7), // Pink
+    Color(0xFFD7F4F2), // Aqua
+    Color(0xFFE4DCCF)  // Beige
+)
+
+val darkPastelColors = listOf(
+    Color(0xFF6D5AA8), // Deep Lavender
+    Color(0xFF4F7A63), // Forest Green
+    Color(0xFFC73E17), // Burnt Peach
+    Color(0xFF487DAF), // Slate Blue
+    Color(0xFFB6A040), // Olive Gold
+    Color(0xFF8A5A73), // Dusty Rose
+    Color(0xFF20B2A6), // Deep Aqua
+    Color(0xFFBB1B52)  // Warm Taupe
 )
 
 class MainActivity : ComponentActivity() {
@@ -123,11 +159,9 @@ fun HomeScreen() {
 
     if (selectedDeck != null) {
         DeckScreen(
-            deck = selectedDeck!!,
-            onBack = {
+            deck = selectedDeck!!, onBack = {
                 selectedDeck = null
-            }
-        )
+            })
         return
     }
 
@@ -165,8 +199,7 @@ fun HomeScreen() {
 
                     title = {
                         Text(
-                            "Create Deck",
-                            color = MaterialTheme.colorScheme.onPrimary
+                            "Create Deck", color = MaterialTheme.colorScheme.onPrimary
                         )
                     },
 
@@ -175,8 +208,7 @@ fun HomeScreen() {
                         TextButton(
                             onClick = {
                                 showCreateScreen = false
-                            }
-                        ) {
+                            }) {
                             Text(
                                 text = "←",
                                 fontSize = 30.sp,
@@ -202,12 +234,11 @@ fun HomeScreen() {
             ) {
 
                 OutlinedTextField(
-                    value = deckName,
-                    onValueChange = { deckName = it },
-                    label = { Text(
-                        text= "Deck Name",
-                        color= MaterialTheme.colorScheme.secondary) },
-                    modifier = Modifier.fillMaxWidth()
+                    value = deckName, onValueChange = { deckName = it }, label = {
+                        Text(
+                            text = "Deck Name", color = MaterialTheme.colorScheme.secondary
+                        )
+                    }, modifier = Modifier.fillMaxWidth()
                 )
 
                 Spacer(
@@ -215,12 +246,11 @@ fun HomeScreen() {
                 )
 
                 OutlinedTextField(
-                    value = question,
-                    onValueChange = { question = it },
-                    label = { Text(
-                        text = "Question",
-                        color= MaterialTheme.colorScheme.secondary) },
-                    modifier = Modifier.fillMaxWidth()
+                    value = question, onValueChange = { question = it }, label = {
+                        Text(
+                            text = "Question", color = MaterialTheme.colorScheme.secondary
+                        )
+                    }, modifier = Modifier.fillMaxWidth()
                 )
 
                 Spacer(
@@ -228,12 +258,11 @@ fun HomeScreen() {
                 )
 
                 OutlinedTextField(
-                    value = answer,
-                    onValueChange = { answer = it },
-                    label = { Text(
-                        text = "Answer",
-                        color= MaterialTheme.colorScheme.secondary) },
-                    modifier = Modifier.fillMaxWidth()
+                    value = answer, onValueChange = { answer = it }, label = {
+                        Text(
+                            text = "Answer", color = MaterialTheme.colorScheme.secondary
+                        )
+                    }, modifier = Modifier.fillMaxWidth()
                 )
 
                 Spacer(
@@ -248,27 +277,23 @@ fun HomeScreen() {
                     ),
                     onClick = {
 
-                        if (
-                            question.isNotBlank() &&
-                            answer.isNotBlank()
-                        ) {
+                        if (question.isNotBlank() && answer.isNotBlank()) {
 
                             newCards.add(
                                 Flashcard(
-                                    question = question,
-                                    answer = answer
+                                    question = question, answer = answer
                                 )
                             )
 
                             question = ""
                             answer = ""
                         }
-                    }
-                ) {
+                    }) {
                     Text(
-                        text= "Add Flashcard",
+                        text = "Add Flashcard",
                         fontSize = 18.sp,
-                        color = MaterialTheme.colorScheme.onPrimary)  //dark purple
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )  //dark purple
                 }
 
                 Spacer(
@@ -276,8 +301,7 @@ fun HomeScreen() {
                 )
 
                 Text(
-                    text = "Added Cards",
-                    fontSize = 22.sp
+                    text = "Added Cards", fontSize = 22.sp
                 )
 
                 newCards.forEach { card ->
@@ -294,19 +318,16 @@ fun HomeScreen() {
                                 editAnswer = card.answer
 
                                 showEditDialog = true
-                            }
-                    ) {
+                            }) {
 
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(0.dp),
 
-                            horizontalArrangement =
-                                Arrangement.SpaceBetween,
+                            horizontalArrangement = Arrangement.SpaceBetween,
 
-                            verticalAlignment =
-                                Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
 
                             Column(
@@ -329,11 +350,9 @@ fun HomeScreen() {
                             TextButton(
                                 onClick = {
                                     newCards.remove(card)
-                                }
-                            ) {
+                                }) {
                                 Text(
-                                    text = "X",
-                                    fontSize = 14.sp
+                                    text = "X", fontSize = 14.sp
                                 )
                             }
                         }
@@ -352,26 +371,22 @@ fun HomeScreen() {
                     ),
                     onClick = {
 
-                        if (
-                            deckName.isNotBlank() &&
-                            newCards.isNotEmpty()
-                        ) {
+                        if (deckName.isNotBlank() && newCards.isNotEmpty()) {
 
                             sampleDecks.add(
                                 Deck(
-                                    name = deckName,
-                                    cards = newCards.toMutableList()
+                                    name = deckName, cards = newCards.toMutableList()
                                 )
                             )
 
                             showCreateScreen = false
                         }
-                    }
-                ) {
+                    }) {
                     Text(
-                        text= "Save Deck",
+                        text = "Save Deck",
                         fontSize = 18.sp,
-                        color = MaterialTheme.colorScheme.onPrimary)
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
                 }
             }
         }
@@ -392,29 +407,21 @@ fun HomeScreen() {
 
                     Column {
 
-                        OutlinedTextField(
-                            value = editQuestion,
-                            onValueChange = {
-                                editQuestion = it
-                            },
-                            label = {
-                                Text("Question")
-                            }
-                        )
+                        OutlinedTextField(value = editQuestion, onValueChange = {
+                            editQuestion = it
+                        }, label = {
+                            Text("Question")
+                        })
 
                         Spacer(
                             modifier = Modifier.height(8.dp)
                         )
 
-                        OutlinedTextField(
-                            value = editAnswer,
-                            onValueChange = {
-                                editAnswer = it
-                            },
-                            label = {
-                                Text("Answer")
-                            }
-                        )
+                        OutlinedTextField(value = editAnswer, onValueChange = {
+                            editAnswer = it
+                        }, label = {
+                            Text("Answer")
+                        })
                     }
                 },
 
@@ -427,8 +434,7 @@ fun HomeScreen() {
                             editingCard?.answer = editAnswer
 
                             showEditDialog = false
-                        }
-                    ) {
+                        }) {
                         Text("Save")
                     }
                 },
@@ -438,12 +444,10 @@ fun HomeScreen() {
                     Button(
                         onClick = {
                             showEditDialog = false
-                        }
-                    ) {
+                        }) {
                         Text("Cancel")
                     }
-                }
-            )
+                })
         }
 
         return
@@ -456,11 +460,9 @@ fun HomeScreen() {
             TopAppBar(
                 title = {
                     Text(
-                        "Flashcard Decks",
-                        color = MaterialTheme.colorScheme.onPrimary
+                        "Flashcard Decks", color = MaterialTheme.colorScheme.onPrimary
                     )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
+                }, colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
             )
@@ -471,15 +473,11 @@ fun HomeScreen() {
             if (!showBottomSheet) {
 
                 FloatingActionButton(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    onClick = {
+                    containerColor = MaterialTheme.colorScheme.primary, onClick = {
                         showCreateScreen = true
-                    }
-                ) {
+                    }) {
                     Text(
-                        text = "+",
-                        fontSize = 40.sp,
-                        color = MaterialTheme.colorScheme.onPrimary
+                        text = "+", fontSize = 40.sp, color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             }
@@ -493,29 +491,26 @@ fun HomeScreen() {
                 .padding(16.dp)
         ) {
 
-            sampleDecks
-                .sortedByDescending { it.isFavorite }
-                .forEach { deck ->
+            sampleDecks.sortedByDescending { it.isFavorite }.forEach { deck ->
 
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 6.dp)
-                            .combinedClickable(
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp)
+                        .combinedClickable(
 
-                                onClick = {
-                                    selectedDeck = deck
-                                },
+                            onClick = {
+                                selectedDeck = deck
+                            },
 
-                                onLongClick = {
+                            onLongClick = {
 
-                                    selectedDeckForMenu = deck
-                                    renameText = deck.name
-                                    showBottomSheet = true
-                                }
-                            )
+                                selectedDeckForMenu = deck
+                                renameText = deck.name
+                                showBottomSheet = true
+                            })
 
-                    ) {
+                ) {
 
                     Row(
                         modifier = Modifier
@@ -526,11 +521,8 @@ fun HomeScreen() {
                     ) {
 
                         Text(
-                            text =
-                                if (deck.isFavorite)
-                                    " ⭐ ${deck.name}"
-                                else
-                                    deck.name
+                            text = if (deck.isFavorite) " ⭐ ${deck.name}"
+                            else deck.name
                         )
                     }
                 }
@@ -543,19 +535,15 @@ fun HomeScreen() {
         ModalBottomSheet(
             onDismissRequest = {
                 showBottomSheet = false
-            }
-        ) {
+            }) {
 
             Column(
                 modifier = Modifier.padding(16.dp)
             ) {
 
                 Text(
-                    text =
-                        if (selectedDeckForMenu!!.isFavorite)
-                            "⭐ ${selectedDeckForMenu!!.name}"
-                        else
-                            selectedDeckForMenu!!.name,
+                    text = if (selectedDeckForMenu!!.isFavorite) "⭐ ${selectedDeckForMenu!!.name}"
+                    else selectedDeckForMenu!!.name,
 
                     fontSize = 24.sp
                 )
@@ -565,11 +553,9 @@ fun HomeScreen() {
                 )
 
                 Button(
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = {
+                    modifier = Modifier.fillMaxWidth(), onClick = {
                         showRenameDialog = true
-                    }
-                ) {
+                    }) {
                     Text("✏ Rename")
                 }
 
@@ -578,21 +564,16 @@ fun HomeScreen() {
                 )
 
                 Button(
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = {
+                    modifier = Modifier.fillMaxWidth(), onClick = {
 
-                        selectedDeckForMenu!!.isFavorite =
-                            !selectedDeckForMenu!!.isFavorite
+                        selectedDeckForMenu!!.isFavorite = !selectedDeckForMenu!!.isFavorite
 
                         showBottomSheet = false
-                    }
-                ) {
+                    }) {
 
                     Text(
-                        if (selectedDeckForMenu!!.isFavorite)
-                            "⭐ Remove Favorite"
-                        else
-                            "⭐ Add Favorite"
+                        if (selectedDeckForMenu!!.isFavorite) "⭐ Remove Favorite"
+                        else "⭐ Add Favorite"
                     )
                 }
 
@@ -601,11 +582,9 @@ fun HomeScreen() {
                 )
 
                 Button(
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = {
+                    modifier = Modifier.fillMaxWidth(), onClick = {
                         showDeleteDialog = true
-                    }
-                ) {
+                    }) {
                     Text("🗑 Delete")
                 }
 
@@ -614,11 +593,9 @@ fun HomeScreen() {
                 )
 
                 Button(
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = {
+                    modifier = Modifier.fillMaxWidth(), onClick = {
                         showBottomSheet = false
-                    }
-                ) {
+                    }) {
                     Text("✖ Cancel")
                 }
             }
@@ -640,11 +617,9 @@ fun HomeScreen() {
             text = {
 
                 OutlinedTextField(
-                    value = renameText,
-                    onValueChange = {
+                    value = renameText, onValueChange = {
                         renameText = it
-                    }
-                )
+                    })
             },
 
             confirmButton = {
@@ -652,13 +627,11 @@ fun HomeScreen() {
                 Button(
                     onClick = {
 
-                        selectedDeckForMenu!!.name =
-                            renameText
+                        selectedDeckForMenu!!.name = renameText
 
                         showRenameDialog = false
                         showBottomSheet = false
-                    }
-                ) {
+                    }) {
                     Text("Save")
                 }
             },
@@ -668,12 +641,10 @@ fun HomeScreen() {
                 Button(
                     onClick = {
                         showRenameDialog = false
-                    }
-                ) {
+                    }) {
                     Text("Cancel")
                 }
-            }
-        )
+            })
     }
 
     if (showDeleteDialog && selectedDeckForMenu != null) {
@@ -705,8 +676,7 @@ fun HomeScreen() {
 
                         showDeleteDialog = false
                         showBottomSheet = false
-                    }
-                ) {
+                    }) {
                     Text("Delete")
                 }
             },
@@ -716,24 +686,21 @@ fun HomeScreen() {
                 Button(
                     onClick = {
                         showDeleteDialog = false
-                    }
-                ) {
+                    }) {
                     Text("Cancel")
                 }
-            }
-        )
+            })
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeckScreen(
-    deck: Deck,
-    onBack: () -> Unit
+    deck: Deck, onBack: () -> Unit
 ) {
 
     var currentCardIndex by remember {
-        mutableStateOf(0)
+        mutableIntStateOf(0)
     }
 
     var showAnswer by remember {
@@ -748,7 +715,64 @@ fun DeckScreen(
         mutableStateOf(false)
     }
 
+    var isSliding by remember {
+        mutableStateOf(false)
+    }
+
+    var dragOffset by remember {
+        mutableFloatStateOf(0f)
+    }
+
+    var isDragging by remember {
+        mutableStateOf(false)
+    }
+
+    val scope = rememberCoroutineScope()
+
+    val slideOffset = remember {
+        Animatable(0f)
+    }
+
+    val screenWidthPx = LocalWindowInfo.current.containerSize.width.toFloat()
+
     val currentCard = studyCards[currentCardIndex]
+
+    suspend fun animateCardTransition(direction: Int) {
+
+        isSliding = true
+
+        val exitOffset = if (direction == 1) -screenWidthPx
+        else screenWidthPx
+
+        val enterOffset = if (direction == 1) screenWidthPx
+        else -screenWidthPx
+
+        // Start from wherever the user's finger left the card
+        slideOffset.snapTo(slideOffset.value + dragOffset)
+        dragOffset = 0f
+
+        // Continue sliding off-screen
+        slideOffset.animateTo(
+            targetValue = exitOffset, animationSpec = tween(
+                durationMillis = 220, easing = FastOutSlowInEasing
+            )
+        )
+        // Change card
+        currentCardIndex += direction
+        showAnswer = false
+
+        // Move new card off-screen
+        slideOffset.snapTo(enterOffset)
+
+        // Slide new card in
+        slideOffset.animateTo(
+            targetValue = 0f, animationSpec = tween(
+                durationMillis = 280, easing = FastOutSlowInEasing
+            )
+        )
+
+        isSliding = false
+    }
 
     Scaffold(
 
@@ -768,54 +792,44 @@ fun DeckScreen(
                                 .padding(end = 12.dp)
                                 .clickable {
                                     onBack()
-                                }
-                        )
+                                })
 
                         Text(deck.name)
                     }
-                },
-                actions = {
+                }, actions = {
 
                     Box {
 
                         IconButton(
                             onClick = {
                                 showMenu = true
-                            }
-                        ) {
+                            }) {
                             Text(
-                                text = "⋮",
-                                fontSize = 28.sp
+                                text = "⋮", fontSize = 28.sp
                             )
                         }
 
                         DropdownMenu(
                             expanded = showMenu,
-                            onDismissRequest = {
-                                showMenu = false
-                            }
+                            onDismissRequest = { showMenu = false },
+                            containerColor = MaterialTheme.colorScheme.primary
                         ) {
-
                             DropdownMenuItem(
-
                                 text = {
-                                    Text("Shuffle Cards")
-                                },
-
-                                onClick = {
-
+                                    Text(
+                                        text = "Shuffle Cards", fontSize = 16.sp
+                                    )
+                                }, colors = MenuDefaults.itemColors(
+                                    textColor = MaterialTheme.colorScheme.onPrimary
+                                ), onClick = {
                                     studyCards = studyCards.shuffled()
-
                                     currentCardIndex = 0
                                     showAnswer = false
-
                                     showMenu = false
-                                }
-                            )
+                                })
                         }
                     }
-                }
-            )
+                })
         }
 
     ) { paddingValues ->
@@ -827,98 +841,183 @@ fun DeckScreen(
                 .fillMaxSize()
         ) {
 
-            Card(
-                onClick = {
-                    showAnswer = !showAnswer
-                },
-
-                shape = RoundedCornerShape(32.dp),
-
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFF64B5F6)
-                ),
-
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
                     .weight(1f)
-                    .padding(vertical = 5.dp)
-            ) {
+                    .graphicsLayer {
+                        translationX = slideOffset.value + dragOffset
+                    }
+                    .pointerInput(currentCardIndex) {
 
-                Box(
+                        detectHorizontalDragGestures(
+
+                            onHorizontalDrag = { _, dragAmount ->
+
+                                if (!isSliding) {
+                                    isDragging = true
+                                    dragOffset += dragAmount
+                                }
+
+                            },
+
+                            onDragEnd = {
+
+                                scope.launch {
+
+                                    when {
+
+                                        dragOffset < -(screenWidthPx * 0.25f) && currentCardIndex < studyCards.lastIndex -> {
+
+                                            animateCardTransition(1)
+                                        }
+
+                                        dragOffset > (screenWidthPx * 0.25f) && currentCardIndex > 0 -> {
+
+                                            animateCardTransition(-1)
+                                        }
+
+                                        else -> {
+
+                                            slideOffset.snapTo(dragOffset)
+
+                                            dragOffset = 0f
+
+                                            slideOffset.animateTo(
+                                                targetValue = 0f, animationSpec = spring(
+                                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                                    stiffness = Spring.StiffnessMedium
+                                                )
+                                            )
+                                        }
+                                    }
+                                    isDragging = false
+                                }
+                            })
+                    }) {
+                StudyFlashcard(
+                    currentCard = currentCard,
+                    currentCardIndex = currentCardIndex,
+                    totalCards = studyCards.size,
+                    isFlipped = showAnswer,
+                    onCardClick = {
+                        if (!isDragging && !isSliding) {
+                            showAnswer = !showAnswer
+                        }
+                    },
                     modifier = Modifier.fillMaxSize()
-                ) {
-
-                    Text(
-                        text = "${currentCardIndex + 1}/${studyCards.size}",
-                        fontSize = 20.sp,
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(16.dp)
-                    )
-
-                    Text(
-                        text =
-                            if (showAnswer)
-                                currentCard.answer
-                            else
-                                currentCard.question,
-
-                        fontSize = 28.sp,
-
-                        modifier = Modifier.align(
-                            Alignment.Center
-                        )
-                    )
-
-                    Text(
-                        text = "Tap card to flip",
-
-                        modifier = Modifier
-                            .align(
-                                Alignment.BottomCenter
-                            )
-                            .padding(bottom = 16.dp)
-                    )
-                }
+                )
             }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
 
-                horizontalArrangement =
-                    Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
 
                 Button(
                     onClick = {
-
-                        if (currentCardIndex > 0) {
-                            currentCardIndex--
-                            showAnswer = false
+                        if (currentCardIndex > 0 && !isSliding) {
+                            scope.launch {
+                                animateCardTransition(-1)
+                            }
                         }
-                    }
-                ) {
+                    }) {
                     Text(
-                        text = "←",
-                        fontSize = 28.sp,)
+                        text = "←", fontSize = 28.sp
+                    )
                 }
 
                 Button(
                     onClick = {
-
-                        if (
-                            currentCardIndex < studyCards.size - 1
-                        ) {
-                            currentCardIndex++
-                            showAnswer = false
+                        if (currentCardIndex < studyCards.size - 1 && !isSliding) {
+                            scope.launch {
+                                animateCardTransition(1)
+                            }
                         }
-                    }
-                ) {
-                    Text(text = "→",
-                        fontSize = 28.sp)
+                    }) {
+                    Text(
+                        text = "→", fontSize = 28.sp
+                    )
                 }
             }
         }
     }
 
+}
+
+@Composable
+fun StudyFlashcard(
+    currentCard: Flashcard,
+    currentCardIndex: Int,
+    totalCards: Int,
+    isFlipped: Boolean,
+    onCardClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val rotation by animateFloatAsState(
+        targetValue = if (isFlipped) 180f else 0f,
+        animationSpec = tween(durationMillis = 400),
+        label = "CardFlip"
+    )
+
+    val density = LocalDensity.current
+
+    val darkTheme = isSystemInDarkTheme()
+
+    val cardColor = if (darkTheme) darkPastelColors[currentCardIndex % darkPastelColors.size]
+    else lightPastelColors[currentCardIndex % lightPastelColors.size]
+
+    Card(
+        onClick = onCardClick,
+
+        shape = RoundedCornerShape(32.dp),
+
+        colors = CardDefaults.cardColors(
+            containerColor = cardColor
+        ),
+
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 5.dp)
+            .graphicsLayer {
+                rotationY = rotation
+                cameraDistance = 12f * density.density * 100f
+            }) {
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    if (rotation > 90f) {
+                        rotationY = 180f
+                    }
+                }) {
+
+            Text(
+                text = "${currentCardIndex + 1}/$totalCards",
+                fontSize = 20.sp,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+            )
+
+            Text(
+                text = if (isFlipped) currentCard.answer
+                else currentCard.question,
+
+                fontSize = 28.sp,
+
+                modifier = Modifier.align(Alignment.Center)
+            )
+
+            Text(
+                text = if (isFlipped) "Tap to show question"
+                else "Tap to show answer",
+
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp)
+            )
+        }
+    }
 }
