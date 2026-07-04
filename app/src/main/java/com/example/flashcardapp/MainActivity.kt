@@ -1,5 +1,6 @@
 package com.example.flashcardapp
 
+import androidx.activity.compose.BackHandler
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -64,6 +65,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.key
 
@@ -141,6 +143,9 @@ fun HomeScreen() {
     var selectedDeckForMenu by remember {
         mutableStateOf<Deck?>(null)
     }
+    var showEditDeckScreen by remember {
+        mutableStateOf(false)
+    }
 
     var showBottomSheet by remember {
         mutableStateOf(false)
@@ -156,6 +161,18 @@ fun HomeScreen() {
 
     var renameText by remember {
         mutableStateOf("")
+    }
+
+    if (showEditDeckScreen && selectedDeckForMenu != null) {
+
+        EditDeckScreen(
+            deck = selectedDeckForMenu!!,
+            onBack = {
+                showEditDeckScreen = false
+            }
+        )
+
+        return
     }
 
     if (selectedDeck != null) {
@@ -192,6 +209,24 @@ fun HomeScreen() {
             mutableStateOf("")
         }
 
+        var showExitDialog by remember {
+            mutableStateOf(false)
+        }
+
+        val hasUnsavedChanges =
+            deckName.isNotBlank() ||
+                    question.isNotBlank() ||
+                    answer.isNotBlank() ||
+                    newCards.isNotEmpty()
+
+        BackHandler {
+            if (hasUnsavedChanges) {
+                showExitDialog = true
+            } else {
+                showCreateScreen = false
+            }
+        }
+
         Scaffold(
 
             topBar = {
@@ -208,8 +243,13 @@ fun HomeScreen() {
 
                         TextButton(
                             onClick = {
-                                showCreateScreen = false
-                            }) {
+                                if (hasUnsavedChanges) {
+                                    showExitDialog = true
+                                } else {
+                                    showCreateScreen = false
+                                }
+                            }
+                        ) {
                             Text(
                                 text = "←",
                                 fontSize = 30.sp,
@@ -448,9 +488,49 @@ fun HomeScreen() {
                         }) {
                         Text("Cancel")
                     }
-                })
+                }
+            )
         }
+        if (showExitDialog) {
 
+            AlertDialog(
+
+                onDismissRequest = {
+                    showExitDialog = false
+                },
+
+                title = {
+                    Text("Discard changes?")
+                },
+
+                text = {
+                    Text("Do you want to exit without saving this deck?")
+                },
+
+                confirmButton = {
+
+                    Button(
+                        onClick = {
+                            showExitDialog = false
+                            showCreateScreen = false
+                        }
+                    ) {
+                        Text("Exit")
+                    }
+                },
+
+                dismissButton = {
+
+                    Button(
+                        onClick = {
+                            showExitDialog = false
+                        }
+                    ) {
+                        Text("Stay")
+                    }
+                }
+            )
+        }
         return
     }
 
@@ -563,6 +643,18 @@ fun HomeScreen() {
                 Spacer(
                     modifier = Modifier.height(10.dp)
                 )
+
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        showBottomSheet = false
+                        showEditDeckScreen = true
+                    }
+                ) {
+                    Text("📝 Edit Cards")
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
 
                 Button(
                     modifier = Modifier.fillMaxWidth(), onClick = {
@@ -781,6 +873,10 @@ fun DeckScreen(
         isSliding = false
     }
 
+    BackHandler {
+        onBack()
+    }
+
     Scaffold(
 
         topBar = {
@@ -952,6 +1048,314 @@ fun DeckScreen(
         }
     }
 
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditDeckScreen(
+    deck: Deck,
+    onBack: () -> Unit
+) {
+    var showEditDialog by remember {
+        mutableStateOf(false)
+    }
+
+    var editingCard by remember {
+        mutableStateOf<Flashcard?>(null)
+    }
+
+    var editQuestion by remember {
+        mutableStateOf("")
+    }
+
+    var editAnswer by remember {
+        mutableStateOf("")
+    }
+
+    var showAddDialog by remember {
+        mutableStateOf(false)
+    }
+
+    var newQuestion by remember {
+        mutableStateOf("")
+    }
+
+    var newAnswer by remember {
+        mutableStateOf("")
+    }
+
+    BackHandler {
+        onBack()
+    }
+
+    Scaffold(
+
+        topBar = {
+
+            TopAppBar(
+
+                title = {
+                    Text(
+                        text = "Edit • ${deck.name}",
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                },
+                navigationIcon = {
+
+                    TextButton(
+                        onClick = onBack
+                    ) {
+                        Text(
+                            text = "←",
+                            fontSize = 30.sp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            )
+        }
+    )    { paddingValues ->
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState())
+        )
+        {
+
+            deck.cards.forEach { card ->
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp)
+                        .clickable {
+
+                            editingCard = card
+
+                            editQuestion = card.question
+                            editAnswer = card.answer
+
+                            showEditDialog = true
+                        }
+                ) {
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
+
+                            Text(
+                                text = "Q: ${card.question}",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Text(
+                                text = "A: ${card.answer}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        Text(
+                            text = "✏",
+                            fontSize = 20.sp
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Button(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                    newQuestion = ""
+                    newAnswer = ""
+                    showAddDialog = true
+                }
+            ) {
+                Text("+ Add Card")
+            }
+        }
+    }
+    if (showEditDialog && editingCard != null) {
+
+        AlertDialog(
+
+            onDismissRequest = {
+                showEditDialog = false
+            },
+
+            title = {
+                Text("Edit Flashcard")
+            },
+
+            text = {
+
+                Column {
+
+                    OutlinedTextField(
+                        value = editQuestion,
+                        onValueChange = {
+                            editQuestion = it
+                        },
+                        label = {
+                            Text("Question")
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = editAnswer,
+                        onValueChange = {
+                            editAnswer = it
+                        },
+                        label = {
+                            Text("Answer")
+                        }
+                    )
+                }
+            },
+
+            confirmButton = {
+
+                Button(
+                    onClick = {
+
+                        editingCard?.question = editQuestion
+                        editingCard?.answer = editAnswer
+
+                        showEditDialog = false
+                    }
+                ) {
+                    Text("Save")
+                }
+            },
+
+            dismissButton = {
+
+                Row {
+
+                    Button(
+                        onClick = {
+
+                            editingCard?.let {
+                                deck.cards.remove(it)
+                            }
+
+                            showEditDialog = false
+                        }
+                    ) {
+                        Text("Delete")
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Button(
+                        onClick = {
+                            showEditDialog = false
+                        }
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            }
+        )
+    }
+
+    if (showAddDialog) {
+
+        AlertDialog(
+
+            onDismissRequest = {
+                showAddDialog = false
+            },
+
+            title = {
+                Text("Add Flashcard")
+            },
+
+            text = {
+
+                Column {
+
+                    OutlinedTextField(
+                        value = newQuestion,
+                        onValueChange = {
+                            newQuestion = it
+                        },
+                        label = {
+                            Text("Question")
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = newAnswer,
+                        onValueChange = {
+                            newAnswer = it
+                        },
+                        label = {
+                            Text("Answer")
+                        }
+                    )
+                }
+            },
+
+            confirmButton = {
+
+                Button(
+                    onClick = {
+
+                        if (
+                            newQuestion.isNotBlank() &&
+                            newAnswer.isNotBlank()
+                        ) {
+
+                            deck.cards.add(
+                                Flashcard(
+                                    question = newQuestion,
+                                    answer = newAnswer
+                                )
+                            )
+
+                            showAddDialog = false
+                        }
+                    }
+                ) {
+                    Text("Add")
+                }
+            },
+
+            dismissButton = {
+
+                Button(
+                    onClick = {
+                        showAddDialog = false
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }
 
 @Composable
