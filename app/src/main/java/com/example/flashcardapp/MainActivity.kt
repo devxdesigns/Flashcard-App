@@ -68,13 +68,17 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.key
+import androidx.compose.material3.Checkbox
 
 data class Flashcard(
     var question: String, var answer: String
 )
 
 data class Deck(
-    var name: String, val cards: MutableList<Flashcard>, var isFavorite: Boolean = false
+    var name: String,
+    val cards: MutableList<Flashcard>,
+    var isFavorite: Boolean = false,
+    var isLocked: Boolean = false
 )
 
 val sampleDecks = mutableStateListOf(
@@ -922,17 +926,44 @@ fun DeckScreen(
                                     Text(
                                         text = "Shuffle Cards", fontSize = 16.sp
                                     )
-                                }, colors = MenuDefaults.itemColors(
+                                },
+                                colors = MenuDefaults.itemColors(
                                     textColor = MaterialTheme.colorScheme.onPrimary
-                                ), onClick = {
-                                    studyCards = studyCards.shuffled()
-                                    currentCardIndex = 0
-                                    showAnswer = false
+                                ),
+                                enabled = !deck.isLocked,
+                                onClick = {
+                                    if (!deck.isLocked) {
+                                        studyCards = studyCards.shuffled()
+                                        currentCardIndex = 0
+                                        showAnswer = false
+                                    }
                                     showMenu = false
-                                })
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        if (deck.isLocked)
+                                            "☑ Lock Card Order"
+                                        else
+                                            "☐ Lock Card Order",
+                                        fontSize = 16.sp,
+                                    )
+                                },
+                                colors = MenuDefaults.itemColors(
+                                    textColor = MaterialTheme.colorScheme.onPrimary
+                                ),
+                                onClick = {
+
+                                    deck.isLocked = !deck.isLocked
+
+                                    showMenu = false
+                                }
+                            )
                         }
                     }
-                })
+                }
+            )
         }
 
     ) { paddingValues ->
@@ -1084,8 +1115,34 @@ fun EditDeckScreen(
         mutableStateOf("")
     }
 
+    var searchQuery by remember {
+        mutableStateOf("")
+    }
+    var selectionMode by remember {
+        mutableStateOf(false)
+    }
+
+    val selectedCards = remember {
+        mutableStateListOf<Flashcard>()
+    }
+
+    val filteredCards = deck.cards.filter {
+
+        it.question.contains(searchQuery, ignoreCase = true) ||
+
+                it.answer.contains(searchQuery, ignoreCase = true)
+    }
+
     BackHandler {
-        onBack()
+        if (selectionMode) {
+
+            selectionMode = false
+            selectedCards.clear()
+
+        } else {
+
+            onBack()
+        }
     }
 
     Scaffold(
@@ -1096,20 +1153,51 @@ fun EditDeckScreen(
 
                 title = {
                     Text(
-                        text = "Edit • ${deck.name}",
+                        text = if (selectionMode)
+                            "${selectedCards.size} selected"
+                        else
+                            "Edit • ${deck.name}",
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 },
                 navigationIcon = {
 
                     TextButton(
-                        onClick = onBack
+                        onClick = {
+
+                            if (selectionMode) {
+
+                                selectionMode = false
+                                selectedCards.clear()
+
+                            } else {
+
+                                onBack()
+                            }
+                        }
                     ) {
                         Text(
                             text = "←",
                             fontSize = 30.sp,
                             color = MaterialTheme.colorScheme.onPrimary
                         )
+                    }
+                },
+                actions = {
+                    if (selectionMode) {
+                        TextButton(
+                            onClick = {
+                                deck.cards.removeAll(selectedCards)
+                                selectedCards.clear()
+                                selectionMode = false
+                            }
+                        ) {
+                            Text(
+                                text = "Delete",
+                                fontSize = 18.sp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -1127,22 +1215,61 @@ fun EditDeckScreen(
                 .verticalScroll(rememberScrollState())
         )
         {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = {
+                    searchQuery = it
+                },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = {
+                    Text("🔍 Search cards...")
+                },
+                singleLine = true
+            )
 
-            deck.cards.forEach { card ->
+            Spacer(modifier = Modifier.height(16.dp))
+
+            filteredCards.forEach { card ->
 
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 6.dp)
-                        .clickable {
+                        .combinedClickable(
+                            onClick = {
 
-                            editingCard = card
+                                if (selectionMode) {
 
-                            editQuestion = card.question
-                            editAnswer = card.answer
+                                    if (selectedCards.contains(card)) {
 
-                            showEditDialog = true
-                        }
+                                        selectedCards.remove(card)
+
+                                        if (selectedCards.isEmpty()) {
+                                            selectionMode = false
+                                        }
+
+                                    } else {
+
+                                        selectedCards.add(card)
+                                    }
+
+                                } else {
+
+                                    editingCard = card
+                                    editQuestion = card.question
+                                    editAnswer = card.answer
+                                    showEditDialog = true
+                                }
+                            },
+
+                            onLongClick = {
+
+                                selectionMode = true
+
+                                if (!selectedCards.contains(card))
+                                    selectedCards.add(card)
+                            }
+                        )
                 ) {
 
                     Row(
@@ -1171,10 +1298,18 @@ fun EditDeckScreen(
                             )
                         }
 
-                        Text(
-                            text = "✏",
-                            fontSize = 20.sp
-                        )
+                        if (selectionMode) {
+
+                            Checkbox(
+                                checked = selectedCards.contains(card),
+                                onCheckedChange = null
+                            )
+                        } else {
+                            Text(
+                                text = "✏",
+                                fontSize = 20.sp
+                            )
+                        }
                     }
                 }
             }
