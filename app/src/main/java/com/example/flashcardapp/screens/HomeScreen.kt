@@ -34,18 +34,22 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.flashcardapp.data.Deck
-import com.example.flashcardapp.data.DeckRepository
 import com.example.flashcardapp.data.Flashcard
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.flashcardapp.viewmodel.DeckViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen() {
-    val sampleDecks = DeckRepository.getDecks()
+    val deckViewModel: DeckViewModel = viewModel()
+
+    val sampleDecks = deckViewModel.decks
 
     var showCreateScreen by remember { mutableStateOf(false) }
     var selectedDeck by remember { mutableStateOf<Deck?>(null) }
@@ -76,6 +80,7 @@ fun HomeScreen() {
 
         EditDeckScreen(
             deck = selectedDeckForMenu!!,
+            deckViewModel = deckViewModel,
             onBack = {
                 showEditDeckScreen = false
             }
@@ -86,7 +91,9 @@ fun HomeScreen() {
 
     if (selectedDeck != null) {
         DeckScreen(
-            deck = selectedDeck!!, onBack = {
+            deck = selectedDeck!!,
+            deckViewModel = deckViewModel,
+            onBack = {
                 selectedDeck = null
             })
         return
@@ -324,9 +331,9 @@ fun HomeScreen() {
 
                         if (deckName.isNotBlank() && newCards.isNotEmpty()) {
 
-                            sampleDecks.add(
+                            deckViewModel.addDeck(
                                 Deck(
-                                    name = deckName, cards = newCards.toMutableList()
+                                    name = deckName, cards = newCards.toMutableStateList()
                                 )
                             )
 
@@ -568,12 +575,16 @@ fun HomeScreen() {
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Button(
-                    modifier = Modifier.fillMaxWidth(), onClick = {
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
 
-                        selectedDeckForMenu!!.isFavorite = !selectedDeckForMenu!!.isFavorite
+                        selectedDeckForMenu?.let { deck ->
+                            deckViewModel.toggleFavorite(deck)
+                        }
 
                         showBottomSheet = false
-                    }) {
+                    }
+                ) {
 
                     Text(
                         if (selectedDeckForMenu!!.isFavorite) "⭐ Remove Favorite"
@@ -674,9 +685,9 @@ fun HomeScreen() {
                 Button(
                     onClick = {
 
-                        sampleDecks.remove(
-                            selectedDeckForMenu
-                        )
+                        selectedDeckForMenu?.let { deck ->
+                            deckViewModel.removeDeck(deck)
+                        }
 
                         showDeleteDialog = false
                         showBottomSheet = false

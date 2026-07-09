@@ -37,11 +37,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.flashcardapp.data.Deck
 import com.example.flashcardapp.data.Flashcard
+import com.example.flashcardapp.viewmodel.DeckViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditDeckScreen(
     deck: Deck,
+    deckViewModel: DeckViewModel,
     onBack: () -> Unit
 ) {
     var showEditDialog by remember {
@@ -144,9 +146,14 @@ fun EditDeckScreen(
                     if (selectionMode) {
                         TextButton(
                             onClick = {
-                                deck.cards.removeAll(selectedCards)
-                                selectedCards.clear()
+
+                                deckViewModel.deleteSelectedCards(
+                                    deck,
+                                    selectedCards.toList()
+                                )
+
                                 selectionMode = false
+                                selectedCards.clear()
                             }
                         ) {
                             Text(
@@ -330,9 +337,13 @@ fun EditDeckScreen(
                 Button(
                     onClick = {
 
-                        editingCard?.question = editQuestion
-                        editingCard?.answer = editAnswer
-
+                        editingCard?.let { card ->
+                            deckViewModel.editCard(
+                                card,
+                                editQuestion,
+                                editAnswer
+                            )
+                        }
                         showEditDialog = false
                     }
                 ) {
@@ -347,8 +358,8 @@ fun EditDeckScreen(
                     Button(
                         onClick = {
 
-                            editingCard?.let {
-                                deck.cards.remove(it)
+                            editingCard?.let { card ->
+                                deckViewModel.deleteCard(deck, card)
                             }
 
                             showEditDialog = false
@@ -421,7 +432,8 @@ fun EditDeckScreen(
                             newAnswer.isNotBlank()
                         ) {
 
-                            deck.cards.add(
+                            deckViewModel.addCard(
+                                deck,
                                 Flashcard(
                                     question = newQuestion,
                                     answer = newAnswer

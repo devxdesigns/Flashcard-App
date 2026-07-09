@@ -43,11 +43,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.flashcardapp.data.Deck
 import kotlinx.coroutines.launch
+import com.example.flashcardapp.viewmodel.DeckViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeckScreen(
-    deck: Deck, onBack: () -> Unit
+    deck: Deck,
+    deckViewModel: DeckViewModel,
+    onBack: () -> Unit
 ) {
 
     var currentCardIndex by remember {
@@ -208,9 +211,7 @@ fun DeckScreen(
                                     textColor = MaterialTheme.colorScheme.onPrimary
                                 ),
                                 onClick = {
-
-                                    deck.isLocked = !deck.isLocked
-
+                                    deckViewModel.toggleLock(deck)
                                     showMenu = false
                                 }
                             )

@@ -8,7 +8,7 @@ object DeckRepository {
 
         Deck(
             name = "Biology",
-            cards = mutableListOf(
+            cards = mutableStateListOf(
                 Flashcard(
                     question = "Powerhouse of the cell?",
                     answer = "Mitochondria"
@@ -18,7 +18,7 @@ object DeckRepository {
 
         Deck(
             name = "Korean",
-            cards = mutableListOf(
+            cards = mutableStateListOf(
                 Flashcard(
                     question = "안녕하세요 means?",
                     answer = "Hello"
@@ -43,5 +43,37 @@ object DeckRepository {
 
     fun removeDeck(deck: Deck) {
         decks.remove(deck)
+    }
+
+    fun toggleFavorite(deck: Deck) {
+        deck.isFavorite = !deck.isFavorite
+    }
+
+    fun toggleLock(deck: Deck) {
+        deck.isLocked = !deck.isLocked
+    }
+
+    fun addCard(deck: Deck, card: Flashcard) {
+        deck.cards.add(card)
+    }
+
+    fun editCard(
+        card: Flashcard,
+        question: String,
+        answer: String
+    ) {
+        card.question = question
+        card.answer = answer
+    }
+
+    fun deleteCard(deck: Deck, card: Flashcard) {
+        deck.cards.remove(card)
+    }
+
+    fun deleteSelectedCards(
+        deck: Deck,
+        selectedCards: List<Flashcard>
+    ) {
+        deck.cards.removeAll(selectedCards.toSet())
     }
 }
