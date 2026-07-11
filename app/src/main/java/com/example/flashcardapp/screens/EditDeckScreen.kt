@@ -26,6 +26,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -85,7 +86,11 @@ fun EditDeckScreen(
         mutableStateListOf<Flashcard>()
     }
 
-    val filteredCards = deck.cards.filter {
+    val decks by deckViewModel.decks.collectAsState()
+
+    val currentDeck = decks.firstOrNull { it.id == deck.id } ?: deck
+
+    val filteredCards = currentDeck.cards.filter {
 
         it.question.contains(searchQuery, ignoreCase = true) ||
 
@@ -147,10 +152,9 @@ fun EditDeckScreen(
                         TextButton(
                             onClick = {
 
-                                deckViewModel.deleteSelectedCards(
-                                    deck,
-                                    selectedCards.toList()
-                                )
+                                selectedCards.toList().forEach { card ->
+                                    deckViewModel.deleteCard(deck, card)
+                                }
 
                                 selectionMode = false
                                 selectedCards.clear()
@@ -169,7 +173,7 @@ fun EditDeckScreen(
                 )
             )
         }
-    )    { paddingValues ->
+    ) { paddingValues ->
 
         Column(
             modifier = Modifier
@@ -432,13 +436,11 @@ fun EditDeckScreen(
                             newAnswer.isNotBlank()
                         ) {
 
-                            deckViewModel.addCard(
-                                deck,
-                                Flashcard(
-                                    question = newQuestion,
-                                    answer = newAnswer
-                                )
+                            val newCard = Flashcard(
+                                question = newQuestion,
+                                answer = newAnswer
                             )
+                            deckViewModel.addCard(deck, newCard)
 
                             showAddDialog = false
                         }

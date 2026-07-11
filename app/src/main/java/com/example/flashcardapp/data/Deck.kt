@@ -4,6 +4,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 
 data class Deck(
+    var id: Int = 0,
     var name: String,
     val cards: SnapshotStateList<Flashcard> = mutableStateListOf(),
     var isFavorite: Boolean = false,

@@ -42,8 +42,8 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.flashcardapp.data.Deck
-import kotlinx.coroutines.launch
 import com.example.flashcardapp.viewmodel.DeckViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -297,7 +297,8 @@ fun DeckScreen(
                         },
                         modifier = Modifier.fillMaxSize()
                     )
-                }            }
+                }
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),

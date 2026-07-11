@@ -29,6 +29,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -41,15 +42,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.flashcardapp.data.Deck
 import com.example.flashcardapp.data.Flashcard
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.flashcardapp.viewmodel.DeckViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen() {
-    val deckViewModel: DeckViewModel = viewModel()
-
-    val sampleDecks = deckViewModel.decks
+fun HomeScreen(
+    deckViewModel: DeckViewModel
+) {
+    val sampleDecks by deckViewModel.decks.collectAsState()
 
     var showCreateScreen by remember { mutableStateOf(false) }
     var selectedDeck by remember { mutableStateOf<Deck?>(null) }
@@ -642,7 +642,10 @@ fun HomeScreen() {
                 Button(
                     onClick = {
 
-                        selectedDeckForMenu!!.name = renameText
+                        deckViewModel.renameDeck(
+                            selectedDeckForMenu!!,
+                            renameText
+                        )
 
                         showRenameDialog = false
                         showBottomSheet = false

@@ -20,9 +20,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-//import com.example.flashcardapp.darkPastelColors
 import com.example.flashcardapp.data.Flashcard
-//import com.example.flashcardapp.lightPastelColors
 
 @Composable
 fun StudyFlashcard(
